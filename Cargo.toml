@@ -1,0 +1,16 @@
+[package]
+name = "imgui-opengl-renderer"
+version = "0.1.0"
+authors = ["Michael Fairley <michael@michaelfairley.com>"]
+build = "build.rs"
+
+[dependencies]
+imgui = "0.0.18"
+
+[build-dependencies]
+gl_generator = "0.9.0"
+
+[dev-dependencies]
+sdl2 = "0.31.0"
+imgui-sdl2 = "0.1.0"
+gl = "0.10.0"
