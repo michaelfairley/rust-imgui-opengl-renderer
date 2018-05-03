@@ -1,5 +1,6 @@
 [package]
 name = "imgui-opengl-renderer"
+description = "An OpenGL renderer for imgui-rs"
 version = "0.1.0"
 authors = ["Michael Fairley <michael@michaelfairley.com>"]
 build = "build.rs"
