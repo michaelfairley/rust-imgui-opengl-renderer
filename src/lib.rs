@@ -131,7 +131,7 @@ impl Renderer {
       gl.ActiveTexture(gl::TEXTURE0);
       let last_program = return_param(|x| gl.GetIntegerv(gl::CURRENT_PROGRAM, x));
       let last_texture = return_param(|x| gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x));
-      // let last_sampler = return_param(|x| gl.GetIntegerv(gl::SAMPLER_BINDING, x));
+      let last_sampler = if gl.BindSampler.is_loaded() { return_param(|x| gl.GetIntegerv(gl::SAMPLER_BINDING, x)) } else { 0 };
       let last_array_buffer = return_param(|x| gl.GetIntegerv(gl::ARRAY_BUFFER_BINDING, x));
       let last_element_array_buffer = return_param(|x| gl.GetIntegerv(gl::ELEMENT_ARRAY_BUFFER_BINDING, x));
       let last_vertex_array = return_param(|x| gl.GetIntegerv(gl::VERTEX_ARRAY_BINDING, x));
@@ -171,7 +171,7 @@ impl Renderer {
       gl.UseProgram(self.program);
       gl.Uniform1i(self.locs.texture, 0);
       gl.UniformMatrix4fv(self.locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
-      // gl.BindSampler(0, 0);
+      if gl.BindSampler.is_loaded() { gl.BindSampler(0, 0); }
 
 
       let vao = return_param(|x| gl.GenVertexArrays(1, x));
@@ -213,7 +213,7 @@ impl Renderer {
 
       gl.UseProgram(last_program as _);
       gl.BindTexture(gl::TEXTURE_2D, last_texture as _);
-      // gl.BindSampler(0, last_sampler);
+      if gl.BindSampler.is_loaded() { gl.BindSampler(0, last_sampler as _); }
       gl.ActiveTexture(last_active_texture as _);
       gl.BindVertexArray(last_vertex_array as _);
       gl.BindBuffer(gl::ARRAY_BUFFER, last_array_buffer as _);
