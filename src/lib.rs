@@ -4,6 +4,8 @@ use imgui::{ImGui,Ui};
 use std::mem;
 
 mod gl {
+  #![cfg_attr(feature = "cargo-clippy", allow(unreadable_literal, too_many_arguments))]
+
   include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
