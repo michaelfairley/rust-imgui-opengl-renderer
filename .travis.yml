@@ -14,9 +14,6 @@ before_install:
 install:
   - (cd SDL2-2.0.8 && ./configure && make && sudo make install)
 
-before_script:
-  - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then cargo install clippy; fi
-
 script:
-  - cargo test
-  - bash -c 'if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then cargo clippy -- -D warnings; fi
+  - cargo build --all-targets --verbose
+  - cargo test --verbose
