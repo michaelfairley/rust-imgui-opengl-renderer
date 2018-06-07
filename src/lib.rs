@@ -187,26 +187,28 @@ impl Renderer {
       gl.VertexAttribPointer(self.locs.color,    4, gl::UNSIGNED_BYTE, gl::TRUE,  mem::size_of::<ImDrawVert>() as _, field_offset::<ImDrawVert, _, _>(|v| &v.col) as _);
 
 
-      ui.render::<_, ()>(|_ui, draw_list| {
-        gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
-        gl.BufferData(gl::ARRAY_BUFFER, (draw_list.vtx_buffer.len() * mem::size_of::<ImDrawVert>()) as _, draw_list.vtx_buffer.as_ptr() as _, gl::STREAM_DRAW);
+      ui.render::<_, ()>(|_ui, draw_data| {
+        for draw_list in &draw_data {
+          gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+          gl.BufferData(gl::ARRAY_BUFFER, (draw_list.vtx_buffer.len() * mem::size_of::<ImDrawVert>()) as _, draw_list.vtx_buffer.as_ptr() as _, gl::STREAM_DRAW);
 
-        gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
-        gl.BufferData(gl::ELEMENT_ARRAY_BUFFER, (draw_list.idx_buffer.len() * mem::size_of::<ImDrawIdx>()) as _, draw_list.idx_buffer.as_ptr() as _, gl::STREAM_DRAW);
+          gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
+          gl.BufferData(gl::ELEMENT_ARRAY_BUFFER, (draw_list.idx_buffer.len() * mem::size_of::<ImDrawIdx>()) as _, draw_list.idx_buffer.as_ptr() as _, gl::STREAM_DRAW);
 
-        let mut idx_start = 0;
-        for cmd in draw_list.cmd_buffer {
-          if let Some(_callback) = cmd.user_callback {
-            unimplemented!("Haven't implemented user callbacks yet");
-          } else {
-            gl.BindTexture(gl::TEXTURE_2D, cmd.texture_id as _);
-            gl.Scissor(cmd.clip_rect.x as GLint,
-                       (height - cmd.clip_rect.w) as GLint,
-                       (cmd.clip_rect.z - cmd.clip_rect.x) as GLint,
-                       (cmd.clip_rect.w - cmd.clip_rect.y) as GLint);
-            gl.DrawElements(gl::TRIANGLES, cmd.elem_count as _, if mem::size_of::<ImDrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT }, idx_start as _);
+          let mut idx_start = 0;
+          for cmd in draw_list.cmd_buffer {
+            if let Some(_callback) = cmd.user_callback {
+              unimplemented!("Haven't implemented user callbacks yet");
+            } else {
+              gl.BindTexture(gl::TEXTURE_2D, cmd.texture_id as _);
+              gl.Scissor(cmd.clip_rect.x as GLint,
+                         (height - cmd.clip_rect.w) as GLint,
+                         (cmd.clip_rect.z - cmd.clip_rect.x) as GLint,
+                         (cmd.clip_rect.w - cmd.clip_rect.y) as GLint);
+              gl.DrawElements(gl::TRIANGLES, cmd.elem_count as _, if mem::size_of::<ImDrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT }, idx_start as _);
+            }
+            idx_start += cmd.elem_count * mem::size_of::<ImDrawIdx>() as u32;
           }
-          idx_start += cmd.elem_count * mem::size_of::<ImDrawIdx>() as u32;
         }
 
         Ok(())
