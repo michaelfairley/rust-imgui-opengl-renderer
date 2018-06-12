@@ -161,9 +161,12 @@ impl Renderer {
       gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 
 
-
       let (width, height) = ui.imgui().display_size();
-      gl.Viewport(0, 0, width as _, height as _);
+
+      let fb_width = width * ui.imgui().display_framebuffer_scale().0;
+      let fb_height = height * ui.imgui().display_framebuffer_scale().1;
+
+      gl.Viewport(0, 0, fb_width as _, fb_height as _);
       let matrix = [
         [ 2.0 / width as f32, 0.0,                     0.0, 0.0],
         [ 0.0,                2.0 / -(height as f32),  0.0, 0.0],
@@ -187,7 +190,9 @@ impl Renderer {
       gl.VertexAttribPointer(self.locs.color,    4, gl::UNSIGNED_BYTE, gl::TRUE,  mem::size_of::<ImDrawVert>() as _, field_offset::<ImDrawVert, _, _>(|v| &v.col) as _);
 
 
-      ui.render::<_, ()>(|_ui, draw_data| {
+      ui.render::<_, ()>(|ui, mut draw_data| {
+        draw_data.scale_clip_rects(ui.imgui().display_framebuffer_scale());
+
         for draw_list in &draw_data {
           gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
           gl.BufferData(gl::ARRAY_BUFFER, (draw_list.vtx_buffer.len() * mem::size_of::<ImDrawVert>()) as _, draw_list.vtx_buffer.as_ptr() as _, gl::STREAM_DRAW);
@@ -202,7 +207,7 @@ impl Renderer {
             } else {
               gl.BindTexture(gl::TEXTURE_2D, cmd.texture_id as _);
               gl.Scissor(cmd.clip_rect.x as GLint,
-                         (height - cmd.clip_rect.w) as GLint,
+                         (fb_height - cmd.clip_rect.w) as GLint,
                          (cmd.clip_rect.z - cmd.clip_rect.x) as GLint,
                          (cmd.clip_rect.w - cmd.clip_rect.y) as GLint);
               gl.DrawElements(gl::TRIANGLES, cmd.elem_count as _, if mem::size_of::<ImDrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT }, idx_start as _);
