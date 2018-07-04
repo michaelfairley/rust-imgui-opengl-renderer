@@ -163,6 +163,8 @@ impl Renderer {
 
 
       let (width, height) = ui.imgui().display_size();
+      let (scale_width, scale_height) = ui.imgui().display_framebuffer_scale();
+
       gl.Viewport(0, 0, width as _, height as _);
       let matrix = [
         [ 2.0 / width as f32, 0.0,                     0.0, 0.0],
@@ -200,10 +202,10 @@ impl Renderer {
             unimplemented!("Haven't implemented user callbacks yet");
           } else {
             gl.BindTexture(gl::TEXTURE_2D, cmd.texture_id as _);
-            gl.Scissor(cmd.clip_rect.x as GLint,
-                       (height - cmd.clip_rect.w) as GLint,
-                       (cmd.clip_rect.z - cmd.clip_rect.x) as GLint,
-                       (cmd.clip_rect.w - cmd.clip_rect.y) as GLint);
+            gl.Scissor((cmd.clip_rect.x * scale_width) as GLint,
+                       ((height - cmd.clip_rect.w) * scale_height) as GLint,
+                       ((cmd.clip_rect.z - cmd.clip_rect.x) * scale_width) as GLint,
+                       ((cmd.clip_rect.w - cmd.clip_rect.y) * scale_height) as GLint);
             gl.DrawElements(gl::TRIANGLES, cmd.elem_count as _, if mem::size_of::<ImDrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT }, idx_start as _);
           }
           idx_start += cmd.elem_count * mem::size_of::<ImDrawIdx>() as u32;
