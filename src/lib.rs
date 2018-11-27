@@ -107,7 +107,7 @@ impl Renderer {
 
       gl.BindTexture(gl::TEXTURE_2D, current_texture as _);
 
-      imgui.set_texture_id(font_texture as usize);
+      imgui.set_font_texture_id((font_texture as usize).into());
 
       Self{
         gl,
