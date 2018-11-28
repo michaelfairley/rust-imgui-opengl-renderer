@@ -218,7 +218,7 @@ impl Renderer {
 
         Ok(())
       }).unwrap();
-
+      gl.DeleteVertexArrays(1, &vao);
 
       gl.UseProgram(last_program as _);
       gl.BindTexture(gl::TEXTURE_2D, last_texture as _);
