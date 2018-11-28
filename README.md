@@ -17,4 +17,4 @@ OpenGL (3+) rendering for [imgui-rs](https://github.com/Gekkio/imgui-rs)
    renderer.render(ui);
    ```
 
-Take a look at the [example app](https://github.com/michaelfairley/rust-imgui-opengl-renderer/blob/master/examples/demo.rs) to see it all in context.
+Take a look at the [example app](https://github.com/michaelfairley/rust-imgui-sdl2/blob/master/examples/demo.rs) to see it all in context.
