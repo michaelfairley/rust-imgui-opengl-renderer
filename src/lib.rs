@@ -39,8 +39,12 @@ impl Renderer {
     let gl = gl::Gl::load_with(load_fn);
 
     unsafe {
+      #[cfg(target_os = "macos")]
+      let glsl_version = b"#version 150\n\0";
+      #[cfg(not(target_os = "macos"))]
+      let glsl_version = b"#version 130\n\0";
+
       let vert_source = b"
-        #version 150
         uniform mat4 ProjMtx;
         in vec2 Position;
         in vec2 UV;
@@ -56,22 +60,30 @@ impl Renderer {
       \0";
 
       let frag_source = b"
-        #version 150
         uniform sampler2D Texture;
         in vec2 Frag_UV;
         in vec4 Frag_Color;
         out vec4 Out_Color;
         void main()
         {
-          Out_Color = Frag_Color * texture( Texture, Frag_UV.st);
+          Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
         }
       \0";
+
+      let vert_sources = [glsl_version.as_ptr() as *const GLchar,
+                          vert_source.as_ptr() as *const GLchar];
+      let vert_sources_len = [glsl_version.len() as GLint - 1,
+                              vert_source.len() as GLint - 1];
+      let frag_sources = [glsl_version.as_ptr() as *const GLchar,
+                          frag_source.as_ptr() as *const GLchar];
+      let frag_sources_len = [glsl_version.len() as GLint - 1,
+                              frag_source.len() as GLint - 1];
 
       let program = gl.CreateProgram();
       let vert_shader = gl.CreateShader(gl::VERTEX_SHADER);
       let frag_shader = gl.CreateShader(gl::FRAGMENT_SHADER);
-      gl.ShaderSource(vert_shader, 1, &(vert_source.as_ptr() as *const GLchar), &(vert_source.len() as GLint));
-      gl.ShaderSource(frag_shader, 1, &(frag_source.as_ptr() as *const GLchar), &(frag_source.len() as GLint));
+      gl.ShaderSource(vert_shader, 2, vert_sources.as_ptr(), vert_sources_len.as_ptr());
+      gl.ShaderSource(frag_shader, 2, frag_sources.as_ptr(), frag_sources_len.as_ptr());
       gl.CompileShader(vert_shader);
       gl.CompileShader(frag_shader);
       gl.AttachShader(program, vert_shader);
