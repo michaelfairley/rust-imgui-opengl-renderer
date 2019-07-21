@@ -1,6 +1,6 @@
 extern crate imgui;
 
-use imgui::{Context, Ui, FontAtlasRefMut};
+use imgui::{Context,Ui};
 use std::mem;
 
 mod gl {
@@ -113,24 +113,15 @@ impl Renderer {
       gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
       gl.PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
 
-      match imgui.fonts() {
-        FontAtlasRefMut::Owned(atlas) => {
-          let _ = {
-            let texture = atlas.build_rgba32_texture();
-            gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as _, texture.width as _, texture.height as _, 0, gl::RGBA, gl::UNSIGNED_BYTE, texture.data.as_ptr() as _);
-          };
+      {
+        let mut atlas = imgui.fonts();
 
-          atlas.tex_id = (font_texture as usize).into();
-        },
-        FontAtlasRefMut::Shared(mut atlas) => {
-          let _ = {
-            let texture = atlas.build_rgba32_texture();
-            gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as _, texture.width as _, texture.height as _, 0, gl::RGBA, gl::UNSIGNED_BYTE, texture.data.as_ptr() as _);
-          };
+        let texture = atlas.build_rgba32_texture();
+        gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as _, texture.width as _, texture.height as _, 0, gl::RGBA, gl::UNSIGNED_BYTE, texture.data.as_ptr() as _);
 
-          atlas.tex_id = (font_texture as usize).into();
-        }
+        atlas.tex_id = (font_texture as usize).into();
       }
+
       gl.BindTexture(gl::TEXTURE_2D, current_texture as _);
 
       Self{
@@ -148,7 +139,7 @@ impl Renderer {
     &self,
     ui: Ui<'ui>,
   ) {
-    use imgui::{DrawVert, DrawIdx, DrawCmd, DrawCmdParams};
+    use imgui::{DrawVert,DrawIdx,DrawCmd,DrawCmdParams};
 
     let gl = &self.gl;
 
@@ -215,7 +206,7 @@ impl Renderer {
       gl.VertexAttribPointer(self.locs.color,    4, gl::UNSIGNED_BYTE, gl::TRUE,  mem::size_of::<DrawVert>() as _, field_offset::<DrawVert, _, _>(|v| &v.col) as _);
 
 
-      let mut draw_data = ui.render();
+      let draw_data = ui.render();
 
       for draw_list in draw_data.draw_lists() {
         let vtx_buffer = draw_list.vtx_buffer();
@@ -245,11 +236,7 @@ impl Renderer {
                          (z - x) as GLint,
                          (w - y) as GLint);
 
-              let idx_size = if mem::size_of::<DrawIdx>() == mem::size_of::<u16>() {
-                gl::UNSIGNED_SHORT
-              } else {
-                gl::UNSIGNED_INT
-              };
+              let idx_size = if mem::size_of::<DrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT };
 
               gl.DrawElements(gl::TRIANGLES, count as _, idx_size, (idx_offset * mem::size_of::<DrawIdx>()) as _);
             },
