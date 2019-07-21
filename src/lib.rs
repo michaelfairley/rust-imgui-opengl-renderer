@@ -1,6 +1,6 @@
 extern crate imgui;
 
-use imgui::{ImGui,Ui};
+use imgui::{Context, Ui, FontAtlasRefMut};
 use std::mem;
 
 mod gl {
@@ -30,7 +30,7 @@ struct Locs {
 
 impl Renderer {
   pub fn new<F>(
-    imgui: &mut ImGui,
+    imgui: &mut Context,
     load_fn: F,
   ) -> Self
     where
@@ -113,13 +113,25 @@ impl Renderer {
       gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
       gl.PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
 
-      imgui.prepare_texture(|handle| {
-        gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as _, handle.width as _, handle.height as _, 0, gl::RGBA, gl::UNSIGNED_BYTE, handle.pixels.as_ptr() as _);
-      });
+      match imgui.fonts() {
+        FontAtlasRefMut::Owned(atlas) => {
+          let _ = {
+            let texture = atlas.build_rgba32_texture();
+            gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as _, texture.width as _, texture.height as _, 0, gl::RGBA, gl::UNSIGNED_BYTE, texture.data.as_ptr() as _);
+          };
 
+          atlas.tex_id = (font_texture as usize).into();
+        },
+        FontAtlasRefMut::Shared(mut atlas) => {
+          let _ = {
+            let texture = atlas.build_rgba32_texture();
+            gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as _, texture.width as _, texture.height as _, 0, gl::RGBA, gl::UNSIGNED_BYTE, texture.data.as_ptr() as _);
+          };
+
+          atlas.tex_id = (font_texture as usize).into();
+        }
+      }
       gl.BindTexture(gl::TEXTURE_2D, current_texture as _);
-
-      imgui.set_font_texture_id((font_texture as usize).into());
 
       Self{
         gl,
@@ -136,7 +148,7 @@ impl Renderer {
     &self,
     ui: Ui<'ui>,
   ) {
-    use imgui::{ImDrawVert,ImDrawIdx};
+    use imgui::{DrawVert, DrawIdx, DrawCmd, DrawCmdParams};
 
     let gl = &self.gl;
 
@@ -173,10 +185,11 @@ impl Renderer {
       gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 
 
-      let (width, height) = ui.imgui().display_size();
+      let [width, height] = ui.io().display_size;
+      let [scale_w, scale_h] = ui.io().display_framebuffer_scale;
 
-      let fb_width = width * ui.imgui().display_framebuffer_scale().0;
-      let fb_height = height * ui.imgui().display_framebuffer_scale().1;
+      let fb_width = width * scale_w;
+      let fb_height = height * scale_h;
 
       gl.Viewport(0, 0, fb_width as _, fb_height as _);
       let matrix = [
@@ -197,39 +210,59 @@ impl Renderer {
       gl.EnableVertexAttribArray(self.locs.position);
       gl.EnableVertexAttribArray(self.locs.uv);
       gl.EnableVertexAttribArray(self.locs.color);
-      gl.VertexAttribPointer(self.locs.position, 2, gl::FLOAT,         gl::FALSE, mem::size_of::<ImDrawVert>() as _, field_offset::<ImDrawVert, _, _>(|v| &v.pos) as _);
-      gl.VertexAttribPointer(self.locs.uv,       2, gl::FLOAT,         gl::FALSE, mem::size_of::<ImDrawVert>() as _, field_offset::<ImDrawVert, _, _>(|v| &v.uv) as _);
-      gl.VertexAttribPointer(self.locs.color,    4, gl::UNSIGNED_BYTE, gl::TRUE,  mem::size_of::<ImDrawVert>() as _, field_offset::<ImDrawVert, _, _>(|v| &v.col) as _);
+      gl.VertexAttribPointer(self.locs.position, 2, gl::FLOAT,         gl::FALSE, mem::size_of::<DrawVert>() as _, field_offset::<DrawVert, _, _>(|v| &v.pos) as _);
+      gl.VertexAttribPointer(self.locs.uv,       2, gl::FLOAT,         gl::FALSE, mem::size_of::<DrawVert>() as _, field_offset::<DrawVert, _, _>(|v| &v.uv) as _);
+      gl.VertexAttribPointer(self.locs.color,    4, gl::UNSIGNED_BYTE, gl::TRUE,  mem::size_of::<DrawVert>() as _, field_offset::<DrawVert, _, _>(|v| &v.col) as _);
 
 
-      ui.render::<_, ()>(|ui, mut draw_data| {
-        draw_data.scale_clip_rects(ui.imgui().display_framebuffer_scale());
+      let mut draw_data = ui.render();
 
-        for draw_list in &draw_data {
-          gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
-          gl.BufferData(gl::ARRAY_BUFFER, (draw_list.vtx_buffer.len() * mem::size_of::<ImDrawVert>()) as _, draw_list.vtx_buffer.as_ptr() as _, gl::STREAM_DRAW);
+      for draw_list in draw_data.draw_lists() {
+        let vtx_buffer = draw_list.vtx_buffer();
+        let idx_buffer = draw_list.idx_buffer();
 
-          gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
-          gl.BufferData(gl::ELEMENT_ARRAY_BUFFER, (draw_list.idx_buffer.len() * mem::size_of::<ImDrawIdx>()) as _, draw_list.idx_buffer.as_ptr() as _, gl::STREAM_DRAW);
+        gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+        gl.BufferData(gl::ARRAY_BUFFER, (vtx_buffer.len() * mem::size_of::<DrawVert>()) as _, vtx_buffer.as_ptr() as _, gl::STREAM_DRAW);
 
-          let mut idx_start = 0;
-          for cmd in draw_list.cmd_buffer {
-            if let Some(_callback) = cmd.user_callback {
+        gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
+        gl.BufferData(gl::ELEMENT_ARRAY_BUFFER, (idx_buffer.len() * mem::size_of::<DrawIdx>()) as _, idx_buffer.as_ptr() as _, gl::STREAM_DRAW);
+
+        for cmd in draw_list.commands() {
+          match cmd {
+            DrawCmd::Elements {
+              count,
+              cmd_params: DrawCmdParams {
+                clip_rect: [x, y, z, w],
+                texture_id,
+                idx_offset,
+                ..
+              },
+            } => {
+              gl.BindTexture(gl::TEXTURE_2D, texture_id.id() as _);
+
+              gl.Scissor(x as GLint,
+                         (fb_height - w) as GLint,
+                         (z - x) as GLint,
+                         (w - y) as GLint);
+
+              let idx_size = if mem::size_of::<DrawIdx>() == mem::size_of::<u16>() {
+                gl::UNSIGNED_SHORT
+              } else {
+                gl::UNSIGNED_INT
+              };
+
+              gl.DrawElements(gl::TRIANGLES, count as _, idx_size, (idx_offset * mem::size_of::<DrawIdx>()) as _);
+            },
+            DrawCmd::ResetRenderState => {
+              unimplemented!("Haven't implemented DrawCmd::ResetRenderState yet");
+            },
+            DrawCmd::RawCallback { .. } => {
               unimplemented!("Haven't implemented user callbacks yet");
-            } else {
-              gl.BindTexture(gl::TEXTURE_2D, cmd.texture_id as _);
-              gl.Scissor(cmd.clip_rect.x as GLint,
-                         (fb_height - cmd.clip_rect.w) as GLint,
-                         (cmd.clip_rect.z - cmd.clip_rect.x) as GLint,
-                         (cmd.clip_rect.w - cmd.clip_rect.y) as GLint);
-              gl.DrawElements(gl::TRIANGLES, cmd.elem_count as _, if mem::size_of::<ImDrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT }, idx_start as _);
             }
-            idx_start += cmd.elem_count * mem::size_of::<ImDrawIdx>() as u32;
           }
         }
+      }
 
-        Ok(())
-      }).unwrap();
       gl.DeleteVertexArrays(1, &vao);
 
       gl.UseProgram(last_program as _);
@@ -270,7 +303,7 @@ impl Drop for Renderer {
 
 fn field_offset<T, U, F: for<'a> FnOnce(&'a T) -> &'a U>(f: F) -> usize {
   unsafe {
-    let instance = mem::uninitialized::<T>();
+    let instance = mem::zeroed::<T>();
 
     let offset = {
       let field: &U = f(&instance);
@@ -284,7 +317,7 @@ fn field_offset<T, U, F: for<'a> FnOnce(&'a T) -> &'a U>(f: F) -> usize {
 }
 
 fn return_param<T, F>(f: F) -> T where F: FnOnce(&mut T) {
-  let mut val = unsafe{ mem::uninitialized() };
+  let mut val = unsafe{ mem::zeroed() };
   f(&mut val);
   val
 }
