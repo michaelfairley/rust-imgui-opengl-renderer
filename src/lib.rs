@@ -231,10 +231,10 @@ impl Renderer {
             } => {
               gl.BindTexture(gl::TEXTURE_2D, texture_id.id() as _);
 
-              gl.Scissor(x as GLint,
-                         (fb_height - w) as GLint,
-                         (z - x) as GLint,
-                         (w - y) as GLint);
+              gl.Scissor((x * scale_w) as GLint,
+                         (fb_height - w * scale_h) as GLint,
+                         ((z - x) * scale_w) as GLint,
+                         ((w - y) * scale_h) as GLint);
 
               let idx_size = if mem::size_of::<DrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT };
 
