@@ -4,7 +4,7 @@ use imgui::{Context,Ui};
 use std::mem;
 
 mod gl {
-  #![cfg_attr(feature = "cargo-clippy", allow(unreadable_literal, too_many_arguments))]
+  #![cfg_attr(feature = "cargo-clippy", allow(clippy::unreadable_literal, clippy::too_many_arguments, clippy::unused_unit))]
 
   include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
