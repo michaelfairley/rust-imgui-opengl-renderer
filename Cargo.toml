@@ -1,7 +1,7 @@
 [package]
 name = "imgui-opengl-renderer"
 description = "An OpenGL renderer for imgui-rs"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Michael Fairley <michael@michaelfairley.com>"]
 build = "build.rs"
 homepage = "https://github.com/michaelfairley/rust-imgui-opengl-renderer"
@@ -14,7 +14,7 @@ license = "MIT/Apache-2.0"
 travis-ci = { repository = "michaelfairley/rust-imgui-opengl-renderer" }
 
 [dependencies]
-imgui = "0.2"
+imgui = "0.3.0"
 
 [build-dependencies]
 gl_generator = "0.9.0"
