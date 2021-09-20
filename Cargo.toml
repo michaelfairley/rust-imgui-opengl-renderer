@@ -14,7 +14,7 @@ license = "MIT/Apache-2.0"
 travis-ci = { repository = "michaelfairley/rust-imgui-opengl-renderer" }
 
 [dependencies]
-imgui = "0.7.0"
+imgui = "0.8.0"
 
 [build-dependencies]
 gl_generator = "0.14.0"
