@@ -135,9 +135,10 @@ impl Renderer {
     }
   }
 
-  pub fn render<'ui>(
+  pub fn render(
     &self,
-    ui: Ui<'ui>,
+    ui: Ui,
+    ctx: &mut Context,
   ) {
     use imgui::{DrawVert,DrawIdx,DrawCmd,DrawCmdParams};
 
@@ -206,7 +207,7 @@ impl Renderer {
       gl.VertexAttribPointer(self.locs.color,    4, gl::UNSIGNED_BYTE, gl::TRUE,  mem::size_of::<DrawVert>() as _, field_offset::<DrawVert, _, _>(|v| &v.col) as _);
 
 
-      let draw_data = ui.render();
+      let draw_data = ctx.render();
 
       for draw_list in draw_data.draw_lists() {
         let vtx_buffer = draw_list.vtx_buffer();
