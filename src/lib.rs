@@ -137,7 +137,7 @@ impl Renderer {
 
   pub fn render(
     &self,
-    ui: Ui,
+    ui: &mut Ui,
     ctx: &mut Context,
   ) {
     use imgui::{DrawVert,DrawIdx,DrawCmd,DrawCmdParams};
