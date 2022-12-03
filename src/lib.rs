@@ -1,6 +1,6 @@
 extern crate imgui;
 
-use imgui::{Context,Ui};
+use imgui::Context;
 use std::mem;
 
 mod gl {
@@ -137,7 +137,6 @@ impl Renderer {
 
   pub fn render(
     &self,
-    ui: &mut Ui,
     ctx: &mut Context,
   ) {
     use imgui::{DrawVert,DrawIdx,DrawCmd,DrawCmdParams};
@@ -177,8 +176,8 @@ impl Renderer {
       gl.PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 
 
-      let [width, height] = ui.io().display_size;
-      let [scale_w, scale_h] = ui.io().display_framebuffer_scale;
+      let [width, height] = ctx.io().display_size;
+      let [scale_w, scale_h] = ctx.io().display_framebuffer_scale;
 
       let fb_width = width * scale_w;
       let fb_height = height * scale_h;
