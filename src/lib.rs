@@ -169,7 +169,7 @@ impl Renderer {
 
       gl.Enable(gl::BLEND);
       gl.BlendEquation(gl::FUNC_ADD);
-      gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+      gl.BlendFuncSeparate(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA, gl::ZERO, gl::ONE);
       gl.Disable(gl::CULL_FACE);
       gl.Disable(gl::DEPTH_TEST);
       gl.Enable(gl::SCISSOR_TEST);
